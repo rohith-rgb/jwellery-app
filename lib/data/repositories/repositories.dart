@@ -214,7 +214,9 @@ class JewelryRepository {
   final _db = SupabaseService.client;
 
   Future<List<Jewelry>> fetchAll({String? customerId, String? status}) async {
-    var query = _db.from(AppConstants.tJewelry).select('*, customers(*)');
+    var query = _db
+        .from(AppConstants.tJewelry)
+        .select('*, customers(*), jewelry_renewals(*)');
     if (customerId != null) query = query.eq('customer_id', customerId);
     if (status != null) query = query.eq('status', status);
     final res = await query.order('pledge_date', ascending: false);
@@ -225,7 +227,7 @@ class JewelryRepository {
     final res = await _db
         .from(AppConstants.tJewelry)
         .insert(data)
-        .select('*, customers(*)')
+        .select('*, customers(*), jewelry_renewals(*)')
         .single();
     return Jewelry.fromJson(res);
   }
@@ -236,9 +238,13 @@ class JewelryRepository {
         .from(AppConstants.tJewelry)
         .update(data)
         .eq('id', id)
-        .select('*, customers(*)')
+        .select('*, customers(*), jewelry_renewals(*)')
         .single();
     return Jewelry.fromJson(res);
+  }
+
+  Future<void> addRenewal(Map<String, dynamic> data) async {
+    await _db.from('jewelry_renewals').insert(data);
   }
 
   Future<void> delete(String id) =>

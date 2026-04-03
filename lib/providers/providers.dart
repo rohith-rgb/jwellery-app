@@ -294,9 +294,17 @@ class JewelryProvider extends ChangeNotifier {
   String? _error;
   String? _filterStatus;
 
-  List<Jewelry> get items => _filterStatus == null
-      ? _items
-      : _items.where((j) => j.status == _filterStatus).toList();
+  List<Jewelry> get allItems => _items;
+  List<Jewelry> get items {
+    if (_filterStatus == null) return _items;
+    if (_filterStatus == 'alert') {
+      return _items
+          .where((j) => j.isApproachingSixMonths && j.status != 'redeemed')
+          .toList();
+    }
+    return _items.where((j) => j.status == _filterStatus).toList();
+  }
+
   LoadState get state => _state;
   String? get error => _error;
 
@@ -337,6 +345,8 @@ class JewelryProvider extends ChangeNotifier {
     required DateTime date,
     required double amount,
     String? ref,
+    String? fromBank,
+    double? interestPaid,
   }) async {
     try {
       final j = await _repo.update(id, {
@@ -346,6 +356,18 @@ class JewelryProvider extends ChangeNotifier {
         'repledge_amount': amount,
         'repledge_ref': ref,
       });
+      // Save renewal record
+      if (fromBank != null) {
+        await _repo.addRenewal({
+          'jewelry_id': id,
+          'from_bank': fromBank,
+          'to_bank': bank,
+          'loan_number': ref,
+          'loan_amount': amount,
+          'interest_paid': interestPaid ?? 0,
+          'renewal_date': date.toIso8601String().split('T').first,
+        });
+      }
       final idx = _items.indexWhere((x) => x.id == id);
       if (idx >= 0) _items[idx] = j;
       notifyListeners();
