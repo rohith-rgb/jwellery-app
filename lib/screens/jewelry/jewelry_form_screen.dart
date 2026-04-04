@@ -154,7 +154,7 @@ class _JewelryFormScreenState extends State<JewelryFormScreen> {
             backgroundColor: AppTheme.success,
           ),
         );
-        GoRouter.of(context).go('/jewelry');
+        GoRouterHelper(context).go('/jewelry');
       }
     } catch (e) {
       setState(() => _saving = false);
@@ -181,7 +181,7 @@ class _JewelryFormScreenState extends State<JewelryFormScreen> {
             _isHistoricalRecord ? 'Add Historical Record' : 'Pledge Jewelry'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => GoRouter.of(context).go('/jewelry'),
+          onPressed: () => GoRouterHelper(context).go('/jewelry'),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
