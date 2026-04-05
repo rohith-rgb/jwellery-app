@@ -1,3 +1,5 @@
+// ignore: deprecated_member_use, avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -5,6 +7,134 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/models.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common/common_widgets.dart';
+
+// ─────────────────────────────────────────────────────────────
+// Print helper — opens a new browser tab with formatted bill
+// and auto-triggers the browser print dialog
+// ─────────────────────────────────────────────────────────────
+void _openPrintWindow(Jewelry item, JewelryInterestCalc calc) {
+  final customerName = item.customer?.name ?? '-';
+  final customerPhone = item.customer?.phone ?? '-';
+  final desc = item.description ?? '-';
+  final iType = item.itemType ?? '-';
+  final qty = '${item.quantity ?? 1}';
+  final wt = '${item.weightGrams}g';
+  final pledgeD = fmtDate(item.pledgeDate);
+  final todayD = fmtDate(DateTime.now());
+  final days = '${calc.daysHeld} days';
+  final principal = fmtCurrency(calc.principal);
+  final p1lbl =
+      'Phase 1 (${calc.phase1Months.toStringAsFixed(1)} mo @ ${calc.phase1Rate}%)';
+  final p1amt = fmtCurrency(calc.phase1Interest);
+  final p2lbl =
+      'Phase 2 (${calc.phase2Months.toStringAsFixed(1)} mo @ ${calc.phase2Rate}%)';
+  final p2amt = fmtCurrency(calc.phase2Interest);
+  final totalInt = fmtCurrency(calc.totalInterest);
+  final totalAmt = fmtCurrency(calc.totalAmount);
+  final p2row = calc.phase2Months > 0
+      ? '<div class="row"><span class="lbl">$p2lbl</span>'
+          '<span class="val">$p2amt</span></div>'
+      : '';
+
+  final billHtml = '''
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Redemption Bill - $customerName</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:13px;color:#111;
+     padding:28px;max-width:440px;margin:auto}
+.ctr{text-align:center;margin-bottom:14px}
+.gem{font-size:36px;display:block;margin-bottom:6px}
+.title{font-size:22px;font-weight:900;letter-spacing:3px}
+.sub{font-size:12px;color:#888;margin-top:3px}
+hr{border:none;border-top:1px dashed #ccc;margin:10px 0}
+.sec{font-size:10px;font-weight:700;text-transform:uppercase;
+     letter-spacing:1.5px;color:#1565C0;margin:10px 0 5px}
+.row{display:flex;justify-content:space-between;padding:3px 0}
+.lbl{color:#555}.val{font-weight:600;text-align:right}
+.box{background:#f0f4ff;border-radius:8px;padding:10px 12px;margin:6px 0}
+.bold{font-weight:800}
+.total-box{background:#1565C0;color:#fff;border-radius:12px;
+           padding:18px;text-align:center;margin:14px 0}
+.total-lbl{font-size:11px;letter-spacing:2px;opacity:.75;
+           text-transform:uppercase}
+.total-amt{font-size:32px;font-weight:900;margin-top:4px}
+.footer{text-align:center;font-size:11px;color:#aaa;
+        margin-top:16px;line-height:1.8;border-top:1px solid #eee;
+        padding-top:12px}
+@media print{body{padding:8px}button{display:none!important}}
+</style></head><body>
+
+<div class="ctr">
+  <span class="gem">💎</span>
+  <div class="title">REDEMPTION BILL</div>
+  <div class="sub">Date: $todayD</div>
+</div>
+<hr>
+
+<div class="sec">Customer</div>
+<div class="row"><span class="lbl">Name</span>
+  <span class="val">$customerName</span></div>
+<div class="row"><span class="lbl">Phone</span>
+  <span class="val">$customerPhone</span></div>
+
+<hr>
+<div class="sec">Jewelry Details</div>
+<div class="row"><span class="lbl">Description</span>
+  <span class="val">$desc</span></div>
+<div class="row"><span class="lbl">Type</span>
+  <span class="val">$iType</span></div>
+<div class="row"><span class="lbl">Quantity</span>
+  <span class="val">$qty</span></div>
+<div class="row"><span class="lbl">Weight</span>
+  <span class="val">$wt</span></div>
+
+<hr>
+<div class="sec">Loan Period</div>
+<div class="row"><span class="lbl">Pledge Date</span>
+  <span class="val">$pledgeD</span></div>
+<div class="row"><span class="lbl">Redemption Date</span>
+  <span class="val">$todayD</span></div>
+<div class="row"><span class="lbl">Days Held</span>
+  <span class="val">$days</span></div>
+
+<hr>
+<div class="sec">Interest Calculation</div>
+<div class="row"><span class="lbl">Principal Amount</span>
+  <span class="val bold">$principal</span></div>
+<div class="box">
+  <div class="row"><span class="lbl">$p1lbl</span>
+    <span class="val">$p1amt</span></div>
+  $p2row
+  <hr>
+  <div class="row"><span class="lbl bold">Total Interest</span>
+    <span class="val bold">$totalInt</span></div>
+</div>
+
+<div class="total-box">
+  <div class="total-lbl">Total Amount Due</div>
+  <div class="total-amt">$totalAmt</div>
+</div>
+
+<div class="footer">
+  Thank you for your business<br>
+  Please keep this receipt safe 🙏
+</div>
+
+<script>
+  setTimeout(function(){ window.print(); }, 400);
+</script>
+</body></html>''';
+
+  // Create a blob URL and open it in a new tab
+  final blob = html.Blob([billHtml], 'text/html');
+  final url = html.Url.createObjectUrlFromBlob(blob);
+  html.window.open(url, '_blank');
+  // Revoke after short delay to free memory
+  Future.delayed(const Duration(seconds: 3), () {
+    html.Url.revokeObjectUrl(url);
+  });
+}
 
 class JewelryScreen extends StatefulWidget {
   const JewelryScreen({super.key});
@@ -33,7 +163,7 @@ class _JewelryScreenState extends State<JewelryScreen> {
       title: 'Jewelry',
       currentRoute: '/jewelry',
       fab: FloatingActionButton.extended(
-        onPressed: () => GoRouter.of(context).go('/jewelry/new'),
+        onPressed: () => GoRouterHelper(context).go('/jewelry/new'),
         icon: const Icon(Icons.add),
         label: const Text('Pledge Item'),
         backgroundColor: AppTheme.primary,
@@ -43,7 +173,6 @@ class _JewelryScreenState extends State<JewelryScreen> {
         builder: (_, prov, __) {
           if (prov.state == LoadState.loading) return const LoadingWidget();
 
-          // Alert banner: items approaching 6 months
           final approaching = prov.allItems
               .where((j) => j.isApproachingSixMonths && j.status != 'redeemed')
               .toList();
@@ -62,22 +191,21 @@ class _JewelryScreenState extends State<JewelryScreen> {
                     border:
                         Border.all(color: AppTheme.warning.withOpacity(0.4)),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.notifications_active_rounded,
-                          color: AppTheme.warning, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${approaching.length} item${approaching.length > 1 ? 's' : ''} approaching 6-month mark! Interest will change to 2%.',
-                          style: const TextStyle(
-                              color: AppTheme.warning,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
-                        ),
+                  child: Row(children: [
+                    const Icon(Icons.notifications_active_rounded,
+                        color: AppTheme.warning, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${approaching.length} item${approaching.length > 1 ? "s" : ""} '
+                        'approaching 6-month mark! Interest will change to 2%.',
+                        style: const TextStyle(
+                            color: AppTheme.warning,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600),
                       ),
-                    ],
-                  ),
+                    ),
+                  ]),
                 ),
 
               // ── Filter chips ─────────────────────────────
@@ -85,39 +213,37 @@ class _JewelryScreenState extends State<JewelryScreen> {
                 scrollDirection: Axis.horizontal,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  children: [
-                    _Chip(
-                        label: 'All',
-                        value: null,
-                        active: _activeFilter,
-                        onTap: _setFilter),
-                    const SizedBox(width: 8),
-                    _Chip(
-                        label: '⚠ 6-Month',
-                        value: 'alert',
-                        active: _activeFilter,
-                        onTap: _setFilter),
-                    const SizedBox(width: 8),
-                    _Chip(
-                        label: 'Pledged',
-                        value: 'pledged',
-                        active: _activeFilter,
-                        onTap: _setFilter),
-                    const SizedBox(width: 8),
-                    _Chip(
-                        label: 'Repledged',
-                        value: 'repledged',
-                        active: _activeFilter,
-                        onTap: _setFilter),
-                    const SizedBox(width: 8),
-                    _Chip(
-                        label: 'Redeemed',
-                        value: 'redeemed',
-                        active: _activeFilter,
-                        onTap: _setFilter),
-                  ],
-                ),
+                child: Row(children: [
+                  _Chip(
+                      label: 'All',
+                      value: null,
+                      active: _activeFilter,
+                      onTap: _setFilter),
+                  const SizedBox(width: 8),
+                  _Chip(
+                      label: '⚠ 6-Month',
+                      value: 'alert',
+                      active: _activeFilter,
+                      onTap: _setFilter),
+                  const SizedBox(width: 8),
+                  _Chip(
+                      label: 'Pledged',
+                      value: 'pledged',
+                      active: _activeFilter,
+                      onTap: _setFilter),
+                  const SizedBox(width: 8),
+                  _Chip(
+                      label: 'Repledged',
+                      value: 'repledged',
+                      active: _activeFilter,
+                      onTap: _setFilter),
+                  const SizedBox(width: 8),
+                  _Chip(
+                      label: 'Redeemed',
+                      value: 'redeemed',
+                      active: _activeFilter,
+                      onTap: _setFilter),
+                ]),
               ),
 
               // ── List ─────────────────────────────────────
@@ -127,7 +253,7 @@ class _JewelryScreenState extends State<JewelryScreen> {
                         message: 'No jewelry records',
                         icon: Icons.diamond_outlined,
                         actionLabel: 'Pledge Item',
-                        onAction: () => GoRouter.of(context).go('/jewelry/new'),
+                        onAction: () => GoRouterExt(context).go('/jewelry/new'),
                       )
                     : RefreshIndicator(
                         onRefresh: prov.loadAll,
@@ -154,7 +280,6 @@ class _JewelryScreenState extends State<JewelryScreen> {
     );
   }
 
-  // ── Re-pledge sheet ──────────────────────────────────────────
   void _showRepledgeSheet(BuildContext ctx, Jewelry item) {
     final bankCtrl = TextEditingController(text: item.repledgeBank ?? '');
     final amountCtrl = TextEditingController(
@@ -187,17 +312,18 @@ class _JewelryScreenState extends State<JewelryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Center(
-                      child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                        color: AppTheme.divider,
-                        borderRadius: BorderRadius.circular(2)),
-                  )),
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: AppTheme.divider,
+                          borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
                   const SizedBox(height: 14),
-                  Text('Renewal / Re-pledge',
-                      style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.w700)),
+                  const Text('Renewal / Re-pledge',
+                      style:
+                          TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                   Text(
                     '${item.description ?? "Item"} · ${item.weightGrams}g',
                     style: const TextStyle(
@@ -241,7 +367,7 @@ class _JewelryScreenState extends State<JewelryScreen> {
                       final d = await showDatePicker(
                         context: ctx,
                         initialDate: date,
-                        firstDate: DateTime(2020),
+                        firstDate: DateTime(2015),
                         lastDate: DateTime.now(),
                       );
                       if (d != null) setS(() => date = d);
@@ -259,7 +385,6 @@ class _JewelryScreenState extends State<JewelryScreen> {
                   ElevatedButton(
                     onPressed: () async {
                       if (!formKey.currentState!.validate()) return;
-                      // Calculate interest paid up to renewal date
                       final calc = item.calculateInterest(upTo: date);
                       final ok = await ctx.read<JewelryProvider>().repledge(
                             item.id,
@@ -283,7 +408,6 @@ class _JewelryScreenState extends State<JewelryScreen> {
     );
   }
 
-  // ── Redeem dialog ────────────────────────────────────────────
   void _showRedeemDialog(BuildContext ctx, Jewelry item) {
     showDialog(
       context: ctx,
@@ -310,7 +434,6 @@ class _JewelryScreenState extends State<JewelryScreen> {
     );
   }
 
-  // ── Bill dialog ──────────────────────────────────────────────
   void _showBill(BuildContext ctx, Jewelry item) {
     final calc = item.calculateInterest();
     showDialog(
@@ -387,137 +510,128 @@ class _JewelryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ─────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFAD1457).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.diamond_rounded,
-                      color: Color(0xFFAD1457), size: 20),
+            child: Row(children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFAD1457).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.customer?.name ?? 'Customer',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 14),
-                      ),
-                      Text(
-                        '${item.description ?? "Jewelry"}'
-                        '${item.itemType != null ? " · ${item.itemType}" : ""}'
-                        '${item.quantity != null ? " × ${item.quantity}" : ""}',
-                        style: const TextStyle(
-                            color: AppTheme.textSecondary, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: const Icon(Icons.diamond_rounded,
+                    color: Color(0xFFAD1457), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    StatusBadge(item.status),
-                    if (alert)
-                      Container(
-                        margin: const EdgeInsets.only(top: 4),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppTheme.warning,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${item.daysUntilSixMonths}d to 6mo',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700),
-                        ),
-                      ),
+                    Text(
+                      item.customer?.name ?? 'Customer',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
+                    Text(
+                      '${item.description ?? "Jewelry"}'
+                      '${item.itemType != null ? " · ${item.itemType}" : ""}'
+                      '${item.quantity != null ? " × ${item.quantity}" : ""}',
+                      style: const TextStyle(
+                          color: AppTheme.textSecondary, fontSize: 11),
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  StatusBadge(item.status),
+                  if (alert)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warning,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${item.daysUntilSixMonths}d to 6mo',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                ],
+              ),
+            ]),
           ),
 
           const Divider(height: 16, indent: 12, endIndent: 12),
 
-          // ── Details ─────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Column(
-              children: [
-                Row(children: [
-                  Expanded(child: _KV('Weight', '${item.weightGrams}g')),
-                  Expanded(
-                      child: _KV('Principal', fmtCurrency(item.valueAmount))),
-                  Expanded(child: _KV('Days Held', '${calc.daysHeld} days')),
-                ]),
-                const SizedBox(height: 6),
-                Row(children: [
-                  Expanded(child: _KV('Pledge Date', fmtDate(item.pledgeDate))),
-                  Expanded(
-                      child: _KV(
-                    'Rate',
-                    pastSix
-                        ? '${item.interestRatePhase1}% → ${item.interestRatePhase2}%'
-                        : '${item.interestRatePhase1}%',
-                  )),
-                  Expanded(
-                      child: _KV('Interest', fmtCurrency(calc.totalInterest))),
-                ]),
-                const SizedBox(height: 6),
-                // Total payable highlight
-                Container(
-                  width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: pastSix
-                        ? AppTheme.warningLight
-                        : AppTheme.surfaceVariant,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
+            child: Column(children: [
+              Row(children: [
+                Expanded(child: _KV('Weight', '${item.weightGrams}g')),
+                Expanded(
+                    child: _KV('Principal', fmtCurrency(item.valueAmount))),
+                Expanded(
+                    child: _KV('Days Held',
+                        '${calc.daysHeld} ${calc.daysHeld == 1 ? "day" : "days"}')),
+              ]),
+              const SizedBox(height: 6),
+              Row(children: [
+                Expanded(child: _KV('Pledge Date', fmtDate(item.pledgeDate))),
+                Expanded(
+                    child: _KV(
+                        'Rate',
                         pastSix
-                            ? '⚠ Past 6 months — Rate: ${item.interestRatePhase2}%'
-                            : 'Total Amount Due',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: pastSix
-                              ? AppTheme.warning
-                              : AppTheme.textSecondary,
-                        ),
-                      ),
-                      Text(
-                        fmtCurrency(calc.totalAmount),
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: pastSix ? AppTheme.warning : AppTheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
+                            ? '${item.interestRatePhase1}%→${item.interestRatePhase2}%'
+                            : '${item.interestRatePhase1}%')),
+                Expanded(
+                    child: _KV('Interest', fmtCurrency(calc.totalInterest))),
+              ]),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color:
+                      pastSix ? AppTheme.warningLight : AppTheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
-            ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      pastSix
+                          ? '⚠ Past 6 months — Rate: ${item.interestRatePhase2}%'
+                          : 'Total Amount Due',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color:
+                            pastSix ? AppTheme.warning : AppTheme.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      fmtCurrency(calc.totalAmount),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: pastSix ? AppTheme.warning : AppTheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ]),
           ),
 
-          // ── Repledge info ────────────────────────────────
           if (item.isRepledged && item.repledgeBank != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -552,7 +666,6 @@ class _JewelryCard extends StatelessWidget {
               ),
             ),
 
-          // ── Renewal history ──────────────────────────────
           if (item.renewals.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
@@ -583,7 +696,7 @@ class _JewelryCard extends StatelessWidget {
               ),
             ),
 
-          // ── Action buttons ───────────────────────────────
+          // ── Action buttons ──────────────────────────────
           if (item.status != 'redeemed')
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -650,7 +763,9 @@ class _JewelryCard extends StatelessWidget {
   }
 }
 
-// ── Bill sheet ────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Bill sheet — shows in dialog + Print opens browser print
+// ─────────────────────────────────────────────────────────────
 class _BillSheet extends StatelessWidget {
   final Jewelry item;
   final JewelryInterestCalc calc;
@@ -663,7 +778,7 @@ class _BillSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Bill header
+          // Header
           Center(
             child: Column(children: [
               const Icon(Icons.diamond_rounded,
@@ -681,25 +796,22 @@ class _BillSheet extends StatelessWidget {
           ),
           const Divider(height: 24),
 
-          // Customer
           _BillRow('Customer', item.customer?.name ?? '-'),
           _BillRow('Phone', item.customer?.phone ?? '-'),
           const Divider(height: 16),
 
-          // Jewelry details
           _BillRow('Description', item.description ?? '-'),
           if (item.itemType != null) _BillRow('Type', item.itemType!),
           if (item.quantity != null) _BillRow('Quantity', '${item.quantity}'),
           _BillRow('Weight', '${item.weightGrams} grams'),
           const Divider(height: 16),
 
-          // Date & duration
           _BillRow('Pledge Date', fmtDate(item.pledgeDate)),
           _BillRow('Redemption Date', fmtDate(DateTime.now())),
-          _BillRow('Days Held', '${calc.daysHeld} days'),
+          _BillRow('Days Held',
+              '${calc.daysHeld} ${calc.daysHeld == 1 ? "day" : "days"}'),
           const Divider(height: 16),
 
-          // Interest breakdown
           _BillRow('Principal Amount', fmtCurrency(calc.principal)),
           const SizedBox(height: 4),
           Container(
@@ -725,7 +837,7 @@ class _BillSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Total
+          // Total box
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(14),
@@ -750,7 +862,7 @@ class _BillSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Actions
+          // Action buttons
           Row(children: [
             Expanded(
               child: OutlinedButton.icon(
@@ -762,13 +874,8 @@ class _BillSheet extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Bill ready — connect printer to print')),
-                  );
-                },
+                // ✅ FIX: calls browser print via dart:html
+                onPressed: () => _openPrintWindow(item, calc),
                 icon: const Icon(Icons.print_rounded, size: 16),
                 label: const Text('Print'),
               ),
