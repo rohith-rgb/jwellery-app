@@ -7,6 +7,7 @@ class Customer extends Equatable {
   final String phone;
   final String aadhaar;
   final String? address;
+  final String? photoUrl;
   final DateTime createdAt;
 
   const Customer({
@@ -15,6 +16,7 @@ class Customer extends Equatable {
     required this.phone,
     required this.aadhaar,
     this.address,
+    this.photoUrl,
     required this.createdAt,
   });
 
@@ -24,6 +26,7 @@ class Customer extends Equatable {
         phone: j['phone'],
         aadhaar: j['aadhaar'],
         address: j['address'],
+        photoUrl: j['photo_url'],
         createdAt: DateTime.parse(j['created_at']),
       );
 
@@ -32,17 +35,23 @@ class Customer extends Equatable {
         'phone': phone,
         'aadhaar': aadhaar,
         'address': address,
+        'photo_url': photoUrl,
       };
 
   Customer copyWith(
-          {String? name, String? phone, String? aadhaar, String? address}) =>
+          {String? name,
+          String? phone,
+          String? aadhaar,
+          String? address,
+          String? photoUrl}) =>
       Customer(
           id: id,
           createdAt: createdAt,
           name: name ?? this.name,
           phone: phone ?? this.phone,
           aadhaar: aadhaar ?? this.aadhaar,
-          address: address ?? this.address);
+          address: address ?? this.address,
+          photoUrl: photoUrl ?? this.photoUrl);
 
   @override
   List<Object?> get props => [id, name, phone, aadhaar];

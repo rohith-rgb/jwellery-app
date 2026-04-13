@@ -1,4 +1,4 @@
-// ignore: deprecated_member_use, avoid_web_libraries_in_flutter
+// ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -163,7 +163,7 @@ class _JewelryScreenState extends State<JewelryScreen> {
       title: 'Jewelry',
       currentRoute: '/jewelry',
       fab: FloatingActionButton.extended(
-        onPressed: () => GoRouterHelper(context).go('/jewelry/new'),
+        onPressed: () => GoRouter.of(context).go('/jewelry/new'),
         icon: const Icon(Icons.add),
         label: const Text('Pledge Item'),
         backgroundColor: AppTheme.primary,
@@ -253,7 +253,7 @@ class _JewelryScreenState extends State<JewelryScreen> {
                         message: 'No jewelry records',
                         icon: Icons.diamond_outlined,
                         actionLabel: 'Pledge Item',
-                        onAction: () => GoRouterExt(context).go('/jewelry/new'),
+                        onAction: () => GoRouter.of(context).go('/jewelry/new'),
                       )
                     : RefreshIndicator(
                         onRefresh: prov.loadAll,
@@ -696,6 +696,55 @@ class _JewelryCard extends StatelessWidget {
               ),
             ),
 
+          // ── Jewelry photos gallery ──────────────────────
+          if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Photos',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textSecondary)),
+                  const SizedBox(height: 6),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: item.imageUrl!
+                          .split(',')
+                          .where((u) => u.trim().isNotEmpty)
+                          .map((url) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: GestureDetector(
+                                  onTap: () => _showPhotoDialog(context, url),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      url.trim(),
+                                      width: 70,
+                                      height: 70,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        width: 70,
+                                        height: 70,
+                                        color: AppTheme.surfaceVariant,
+                                        child: const Icon(
+                                            Icons.broken_image_outlined,
+                                            color: AppTheme.textHint),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // ── Action buttons ──────────────────────────────
           if (item.status != 'redeemed')
             Padding(
@@ -908,6 +957,45 @@ class _BillRow extends StatelessWidget {
           ],
         ),
       );
+}
+
+void _showPhotoDialog(BuildContext context, String url) {
+  showDialog(
+    context: context,
+    builder: (_) => Dialog(
+      backgroundColor: Colors.black,
+      insetPadding: const EdgeInsets.all(12),
+      child: Stack(
+        children: [
+          InteractiveViewer(
+            child: Image.network(
+              url,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Center(
+                  child: Icon(Icons.broken_image_outlined,
+                      color: Colors.white, size: 48)),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 18),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _KV extends StatelessWidget {

@@ -1,5 +1,5 @@
-// ── customers_screen.dart ────────────────────────────────────
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/models.dart';
@@ -34,7 +34,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
       title: 'Customers',
       currentRoute: '/customers',
       fab: FloatingActionButton.extended(
-        onPressed: () => context.go('/customers/new'),
+        onPressed: () => GoRouterExt(context).go('/customers/new'),
         icon: const Icon(Icons.person_add_rounded),
         label: const Text('Add Customer'),
         backgroundColor: AppTheme.primary,
@@ -44,7 +44,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
         children: [
           // Search bar
           Padding(
-            padding: const EdgeInsets.all(AppTheme.md),
+            padding: const EdgeInsets.all(14),
             child: TextField(
               controller: _search,
               decoration: const InputDecoration(
@@ -57,24 +57,24 @@ class _CustomersScreenState extends State<CustomersScreen> {
           Expanded(
             child: Consumer<CustomerProvider>(
               builder: (_, prov, __) {
-                if (prov.state == LoadState.loading)
+                if (prov.state == LoadState.loading) {
                   return const LoadingWidget();
+                }
                 final list = prov.customers;
-                if (list.isEmpty)
+                if (list.isEmpty) {
                   return EmptyState(
                     message: 'No customers found',
                     icon: Icons.people_outline,
                     actionLabel: 'Add Customer',
-                    onAction: () => context.go('/customers/new'),
+                    onAction: () => GoRouterExt(context).go('/customers/new'),
                   );
+                }
                 return RefreshIndicator(
                   onRefresh: prov.loadAll,
                   child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(
-                        AppTheme.md, 0, AppTheme.md, 80),
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 90),
                     itemCount: list.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: AppTheme.sm),
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (_, i) => _CustomerTile(customer: list[i]),
                   ),
                 );
@@ -93,36 +93,75 @@ class _CustomerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasPhoto = customer.photoUrl != null && customer.photoUrl!.isNotEmpty;
+
     return GestureDetector(
-      onTap: () => context.go('/customers/${customer.id}'),
+      onTap: () => GoRouterExt(context).go('/customers/${customer.id}'),
       child: Container(
-        padding: const EdgeInsets.all(AppTheme.md),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppTheme.divider),
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: AppTheme.primaryLight.withOpacity(0.15),
-              child: Text(
-                customer.name.substring(0, 1).toUpperCase(),
-                style: const TextStyle(
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18),
+            // Photo or avatar
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: AppTheme.primaryLight.withOpacity(0.15),
+                border: hasPhoto
+                    ? Border.all(
+                        color: AppTheme.primary.withOpacity(0.3), width: 2)
+                    : null,
               ),
+              child: hasPhoto
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(11),
+                      child: Image.network(
+                        customer.photoUrl!,
+                        width: 52,
+                        height: 52,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            _InitialAvatar(name: customer.name),
+                      ),
+                    )
+                  : _InitialAvatar(name: customer.name),
             ),
             const SizedBox(width: 12),
+
+            // Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(customer.name,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 15)),
+                  Row(
+                    children: [
+                      Text(customer.name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 15)),
+                      if (hasPhoto) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.successLight,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text('✓ Photo',
+                              style: TextStyle(
+                                  color: AppTheme.success,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                      ],
+                    ],
+                  ),
                   const SizedBox(height: 2),
                   Text(customer.phone,
                       style: const TextStyle(
@@ -139,4 +178,20 @@ class _CustomerTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _InitialAvatar extends StatelessWidget {
+  final String name;
+  const _InitialAvatar({required this.name});
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : '?',
+          style: const TextStyle(
+              color: AppTheme.primary,
+              fontWeight: FontWeight.w700,
+              fontSize: 20),
+        ),
+      );
 }

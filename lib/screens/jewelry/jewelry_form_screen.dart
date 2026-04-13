@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/models.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common/common_widgets.dart';
+import '../../widgets/common/photo_upload_widget.dart';
 
 class JewelryFormScreen extends StatefulWidget {
   const JewelryFormScreen({super.key});
@@ -37,6 +38,9 @@ class _JewelryFormScreenState extends State<JewelryFormScreen> {
 
   // FIX 3: historical record mode
   bool _isHistoricalRecord = false;
+
+  // Photo upload
+  final List<String> _photoUrls = [];
 
   @override
   void initState() {
@@ -133,6 +137,7 @@ class _JewelryFormScreenState extends State<JewelryFormScreen> {
       'interest_rate_phase1': double.tryParse(_phase1RateCtrl.text) ?? 1.5,
       'interest_rate_phase2': double.tryParse(_phase2RateCtrl.text) ?? 2.0,
       'notes': _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+      'image_url': _photoUrls.isNotEmpty ? _photoUrls.join(',') : null,
     };
 
     // If manual interest mode — store override in notes

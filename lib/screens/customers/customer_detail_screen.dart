@@ -85,18 +85,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                           padding: const EdgeInsets.fromLTRB(16, 48, 16, 12),
                           child: Row(
                             children: [
-                              CircleAvatar(
-                                radius: 26,
-                                backgroundColor: Colors.white.withOpacity(0.2),
-                                child: Text(
-                                  _customer!.name[0].toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
+                              _CustomerPhoto(customer: _customer!),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
@@ -158,6 +147,48 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
             ),
     );
   }
+}
+
+// ── Customer photo widget ─────────────────────────────────────
+class _CustomerPhoto extends StatelessWidget {
+  final Customer customer;
+  const _CustomerPhoto({required this.customer});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPhoto = customer.photoUrl != null && customer.photoUrl!.isNotEmpty;
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: Colors.white.withOpacity(0.2),
+        border: hasPhoto
+            ? Border.all(color: Colors.white.withOpacity(0.5), width: 2)
+            : null,
+      ),
+      child: hasPhoto
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                customer.photoUrl!,
+                width: 56,
+                height: 56,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _initials(),
+              ),
+            )
+          : _initials(),
+    );
+  }
+
+  Widget _initials() => Center(
+        child: Text(
+          customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
+          style: const TextStyle(
+              color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+        ),
+      );
 }
 
 // ─────────────────────────────────────────────────────────────
