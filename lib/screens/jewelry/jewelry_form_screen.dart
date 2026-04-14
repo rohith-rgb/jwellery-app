@@ -159,7 +159,7 @@ class _JewelryFormScreenState extends State<JewelryFormScreen> {
             backgroundColor: AppTheme.success,
           ),
         );
-        GoRouterHelper(context).go('/jewelry');
+        GoRouter.of(context).go('/jewelry');
       }
     } catch (e) {
       setState(() => _saving = false);
@@ -186,7 +186,7 @@ class _JewelryFormScreenState extends State<JewelryFormScreen> {
             _isHistoricalRecord ? 'Add Historical Record' : 'Pledge Jewelry'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => GoRouterHelper(context).go('/jewelry'),
+          onPressed: () => GoRouter.of(context).go('/jewelry'),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
@@ -585,6 +585,26 @@ class _JewelryFormScreenState extends State<JewelryFormScreen> {
                     ),
                   ],
                 ],
+              ]),
+              const SizedBox(height: 12),
+
+              // ── Jewelry Photos ────────────────────────────
+              _Section('Jewelry Photos (Up to 4)', [
+                const Text(
+                  'Add clear photos of the jewelry for verification',
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                MultiPhotoUpload(
+                  bucket: 'jewelry-photos',
+                  existingUrls: _photoUrls,
+                  maxPhotos: 4,
+                  onChanged: (urls) => setState(() {
+                    _photoUrls
+                      ..clear()
+                      ..addAll(urls);
+                  }),
+                ),
               ]),
               const SizedBox(height: 12),
 
